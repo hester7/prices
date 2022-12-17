@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HotChocolate.AspNetCore" Version="13.0.0-preview.76" />
+    <PackageReference Include="HotChocolate.Data.EntityFramework" Version="13.0.0-preview.76" />
+    <PackageReference Include="HotChocolate.Types.Analyzers" Version="13.0.0-preview.76" />
+    <PackageReference Include="HotChocolate.Types.NodaTime" Version="13.0.0-preview.76" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Prices.Core\Prices.Core.csproj" />
+    <ProjectReference Include="..\Prices.Persistence\Prices.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>
