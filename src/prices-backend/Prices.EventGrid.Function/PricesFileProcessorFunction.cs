@@ -62,13 +62,11 @@ namespace Prices.EventGrid.Function
                 throw new Exception(errorMessage);
             }
 
-            var fileUri = new Uri(blobEvent.Url);
             var blobName = blobEvent.Url.Split(new[] { "prices/" }, StringSplitOptions.None)[1];
             var metadata = await _azureBlobStorageClient.GetBlobMetadataAsync(blobName, cancellationToken);
-            var name = WebUtility.UrlDecode(Path.GetFileName(fileUri.AbsolutePath));
 
             var fileSize = stream.Length;
-            _logger.Information("C# Blob trigger function Processed blob\n Name:{name} \n Size: {length} Bytes", name, fileSize);
+            _logger.Information("C# Blob trigger function Processed blob\n Name:{name} \n Size: {length} Bytes", blobName, fileSize);
 
             try
             {
@@ -118,13 +116,13 @@ namespace Prices.EventGrid.Function
                 }
 
                 var now = _clock.GetCurrentInstant();
-                await context.BulkSavePricesAsync(blobMetadata, name, fileSize, now, result.Prices, cancellationToken);
+                await context.BulkSavePricesAsync(blobMetadata, blobName, fileSize, now, result.Prices, cancellationToken);
                 _logger.Information("Inserted {pricesCount} prices for {blobMetadata} {minDate}",
                     result.Prices.Count(), blobMetadata.ToString(), $"{result.Prices.Min(p => p.IntervalStartTimeUtc):%yyyy-MM-dd}");
             }
             catch (Exception ex)
             {
-                _logger.Error("Unhandled exception processing {name}: {exMessage}", name, ex.Message);
+                _logger.Error("Unhandled exception processing {name}: {exMessage}", blobName, ex.Message);
                 throw;
             }
         }
