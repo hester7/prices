@@ -1,6 +1,10 @@
+# LMP Prices
+
+https://lmpprices.vercel.app/
+
 # Project Description
 
-- Downloads historical and current LMP prices for multiple energy pricing markets and provides a dashboard for a user to view real-time price changes and historical price trends for any pricing node.
+- Downloads historical and current LMP prices for multiple energy markets and provides a dashboard for a user to view real-time price changes and historical price trends for any pricing node.
 - Additional information:
     - LMP (Locational Marginal Prices) = Energy + Congestion + Losses
     - RTO (Regional Transmission Operator) = Energy transmission system operator
@@ -12,21 +16,24 @@
 
 ![Data Model](DataModel.png)
 
-- Price Index
-    - RTO + Market
-    - Ex: CAISO - Day-Ahead
-- Pricing Node
-    - An aggregated pricing node for a specific RTO
-    - Maintains current price and the change over 24 hours
-- Prices File
-    - Files that have been downloaded to Azure
-- Prices
-    - Price intervals for a Pricing Node and Price Index
+- This runs as an Azure managed database for PostgreSQL
+- Table notes
+    - Price Index
+        - RTO + Market
+        - Ex: CAISO - Day-Ahead
+    - Pricing Node
+        - An aggregated pricing node for a specific RTO
+        - Maintains current price and the change over 24 hours
+    - Prices File
+        - Files that have been downloaded to Azure
+    - Prices
+        - Price intervals for a Pricing Node and Price Index
 
-## Azure Blob Storage
+## File Storage
 
-- Prices files are uploaded to Azure
+- Prices files are uploaded to Azure Blob Storage
 - Files are organized into remote folders and include metadata
+- There is an Event Grid event subscription on the container to trigger the processor function
 
 ## Functions
 
@@ -48,7 +55,7 @@
 
 ### Prices File Processor
 
-- When a file is uploaded to the Azure Blob Storage, trigger a function to process the file and write its price intervals to the database
+- When a file is uploaded to the Azure Blob Storage, a function is triggered via an event grid subscription to process the file and write its price intervals to the database
 - Use XML schemas or Excel/CSV parsers to convert file contents into price intervals and save to the database
 - Merge price intervals and prices files
 
@@ -121,7 +128,22 @@
 
 ## UI
 
-// TODO:
+- The UI is a Next.js w/ Typescript app
+- It uses the GraphQL Code Generator (https://the-guild.dev/graphql/codegen) to generate the GraphQL schema and types
+- It uses Apollo to query and subscribe to data from the GraphQL server
+- It uses Material UI to generate a theme with light and dark modes
+- It uses C3 to generate D3-based charts
+- The UI consists of two pages:
+    - Home (Prices Dashboard)
+        - In this page, we fetch all pricing nodes with their current prices and change over 24 hours
+        - Prices are automatically updated via GraphQL subscription
+        - These prices are shown in the ticker as well as in the pricing nodes list next to each chart
+        - For each RTO and pricing node type, we display a list of nodes and a chart
+            - This chart initially contains the average prices for each market
+            - You can select pricing nodes to bring them into the chart
+    - Pricing Node
+        - For a single pricing node (RTO + node name), we fetch the current price and historical data to be shown in a chart
+        - The current price live updates
 
 # Technologies
 
@@ -129,19 +151,25 @@
 - Hot Chocolate (GraphQL)
     - Subscriptions
     - DataLoaders
-    - Relay
 - EF Core
-- Hosted Service
+- IHostedService (background task)
 - PostgreSQL
 - Fly.io
-- // TODO: Front-end
 - Next.js
 - Apollo
+- GraphQL Code Generator
 - Material UI
-- // TODO: Vercel or Cloud Flare Pages
+- C3 (charts)
+- Emotion (styled components)
+- Vercel
 - Azure
+    - PostgreSQL
+    - Storage Account
+    - App Service (API)
     - Functions
-    - Blob Storage
+        - Timer Trigger
+        - Event Grid Trigger
+- Github Actions (CI/CD)
 - NodaTime
 - ClosedXML (Excel)
 - xUnit
@@ -159,18 +187,6 @@
     - Get service by RTO at runtime using factories
 - Factory
 - Extension methods
-
-# Requirements
-
-- Price Dashboard
-    - Frontend (Run in Vercel or Cloud Flare Pages)
-        - Next.js
-        - Get GQL schema
-- Phase 2
-    - Integration test?
-    - Alerts/Notifications
-    - Event Hubs: https://azure.microsoft.com/en-us/products/event-hubs/#overview
-
 
 # Project Structure
 
@@ -223,13 +239,20 @@
 ## User secrets
 
 - Add `SqlConnection` and `SasUri` in the API and Function projects (and `SasUri` in the Tests project)
-- Ex:
-```
-{
-  "SqlConnection": "Host=localhost;Username=postgres;Password={password};Database=prices",
-  "SasUri": "https://{project}.blob.core.windows.net/prices?......."
-}
-```
+    - Ex:
+        ```
+        {
+          "SqlConnection": "Host=localhost;Username=postgres;Password={password};Database=prices",
+          "SasUri": "https://{project}.blob.core.windows.net/prices?......."
+        }
+        ```
+- Add `CorsOrigin` in the API project
+    - Ex: `"CorsOrigins": [ "http://localhost:3000" ]`
+- Add a connection to the container named `Prices` in the `Prices.EventGrid.Function` project
+    - Ex: `"Prices": "DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey={accountKey};BlobEndpoint=https://{storageAccount}.blob.core.windows.net/;TableEndpoint=https://{storageAccount}.table.core.windows.net/;QueueEndpoint=https://{storageAccount}.queue.core.windows.net/;FileEndpoint=https://{storageAccount}.file.core.windows.net/",`
+- Add a `.env` file to the frontend project with the following secret keys:
+    - `NEXT_PUBLIC_GRAPHQL_HTTP_ENDPOINT`
+    - `NEXT_PUBLIC_GRAPHQL_WS_ENDPOINT`
 
 ## EF Core Migrations
 
@@ -238,7 +261,16 @@
 
 ## Run
 
-- Set `Prices.FileProcessor.Function` as the startup project and run
+- Run the Windows Azure Storage Emulator
+    - Ex:
+        ```
+        SET emu="%programfiles(x86)%\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe"
+        %emu% stop
+        %emu% clear all
+        %emu% start
+        ```
+- Start a new instance of `Prices.EventGrid.Function`
+    - Note: since this is an Event Grid trigger, uploading files to the container will not automatically trigger this function. Google how to execute this type of trigger or use the Blob Trigger (`Prices.FileProcessor.Function`) which works based on polling and will, therefore, automatically trigger (note: this causes a lot transactions to be generated in your storage account which can cost money)
 - Start a new instance of `Prices.Downloader.Function`
 - Start a new instance of `Prices.API`
-- Run the `frontend` project // TODO:
+- Run the `prices-frontend` project: `npm run dev`

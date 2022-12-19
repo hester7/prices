@@ -3,7 +3,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.EventGrid;
@@ -48,7 +47,7 @@ namespace Prices.EventGrid.Function
         }
 
         [FunctionName("ProcessPricesFile")]
-        //[FixedDelayRetry(5, "00:01:00")]
+        [FixedDelayRetry(5, "00:01:00")]
         public async Task ProcessPricesFile([EventGridTrigger] EventGridEvent eventGridEvent,
             [Blob("{data.url}", FileAccess.Read, Connection = "Prices")] Stream stream,
             CancellationToken cancellationToken)
