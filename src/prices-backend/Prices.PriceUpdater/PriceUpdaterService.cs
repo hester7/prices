@@ -125,6 +125,7 @@ namespace Prices.PriceUpdater
                     _logger.LogError("An error occurred while updating prices: {exMessage}", ex.Message);
                 }
 
+                //await Task.Delay(Random.Shared.Next(10_000, 20_000), cancellationToken);
                 await Task.Delay(5_000, cancellationToken);
             }
         }
@@ -203,7 +204,7 @@ namespace Prices.PriceUpdater
             await context.SaveChangesAsync(cancellationToken);
 
             // Delay so it appears they are changing at different times
-            await Task.Delay(Random.Shared.Next(200, 800), cancellationToken);
+            await Task.Delay(Random.Shared.Next(200, 400), cancellationToken);
             await _topicEventSender.SendAsync(Constants.OnCurrentPriceChange, pricingNode.Id, cancellationToken);
 
             return true;
