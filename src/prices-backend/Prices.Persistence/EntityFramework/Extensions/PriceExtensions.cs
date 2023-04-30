@@ -14,9 +14,9 @@ namespace Prices.Persistence.EntityFramework.Extensions
             var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
 
             var pricesTableName = $"{nameof(Price)}s";
-            var tempTableName = $"temp_{pricesTableName}_{Guid.NewGuid():N}";
+            var tempTableName = $"temp_prices_{Guid.NewGuid():N}";
 
-            await dbContext.Database.ExecuteSqlRawAsync($@"CREATE TEMPORARY TABLE ""{tempTableName}"" (LIKE ""{pricesTableName}"" INCLUDING ALL)", cancellationToken);
+            await dbContext.Database.ExecuteSqlRawAsync($@"CREATE TABLE {tempTableName} (LIKE ""{pricesTableName}"" INCLUDING ALL)", cancellationToken);
 
             var bulkConfig = new BulkConfig
             {
@@ -26,7 +26,7 @@ namespace Prices.Persistence.EntityFramework.Extensions
 
             var mergeSql = $@"
                     MERGE INTO ""{pricesTableName}"" t
-                    USING ""{tempTableName}"" s
+                    USING {tempTableName} s
                     ON t.""{nameof(Price.PriceIndexId)}"" = s.""{nameof(Price.PriceIndexId)}""
                         AND t.""{nameof(Price.PricingNodeId)}"" = s.""{nameof(Price.PricingNodeId)}""
                         AND t.""{nameof(Price.IntervalEndTimeUtc)}"" = s.""{nameof(Price.IntervalEndTimeUtc)}""
