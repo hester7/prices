@@ -27,7 +27,7 @@ public static class PricesContextExtensions
             if (batches.Count > 1)
                 await Task.Delay(Random.Shared.Next(3_000, 5_000), cancellationToken);
 
-            await dbContext.BulkMergeAsync(batch, cancellationToken: cancellationToken);
+            await dbContext.Prices.BulkMergeAsync(batch.ToList(), cancellationToken: cancellationToken);
         }
 
         var startDate = pricesList.Min(p => p.IntervalStartTimeUtc);
