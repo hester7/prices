@@ -15,6 +15,7 @@ using Serilog.Events;
 using Serilog.Exceptions;
 using Serilog.Extensions.Logging;
 using Serilog.Sinks.SystemConsole.Themes;
+using ILogger = Serilog.ILogger;
 
 [assembly: FunctionsStartup(typeof(Startup))]
 
@@ -38,9 +39,9 @@ internal class Startup : FunctionsStartup
             .AddEntityFrameworkServices(settings)
             .AddPricesDownloaderServices(settings)
             .AddAzureBlobStorageServices()
-            .AddSingleton<ILoggerProvider>((sp) =>
+            .AddSingleton<ILoggerProvider>(sp =>
             {
-                Log.Logger = new LoggerConfiguration()
+                ILogger logger = new LoggerConfiguration()
                     .Enrich.FromLogContext()
                     .Enrich.WithExceptionDetails()
                     .MinimumLevel.Override("Azure", LogEventLevel.Warning)
@@ -51,7 +52,8 @@ internal class Startup : FunctionsStartup
                     )
                     .WriteTo.ApplicationInsights(sp.GetRequiredService<TelemetryClient>(), TelemetryConverter.Traces)
                     .CreateLogger();
-                return new SerilogLoggerProvider(Log.Logger, true);
+                Log.Logger = logger;
+                return new SerilogLoggerProvider(logger, true);
             });
     }
 }
