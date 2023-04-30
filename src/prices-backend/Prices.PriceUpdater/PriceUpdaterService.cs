@@ -103,7 +103,7 @@ namespace Prices.PriceUpdater
 
         private async Task SeedPricesAsync(CancellationToken cancellationToken)
         {
-            var startYear = !Debugger.IsAttached ? DateTime.Today.Year - 3 : DateTime.Today.Year - 1;
+            var startYear = !Debugger.IsAttached ? DateTime.Today.Year - 2 : DateTime.Today.Year - 1;
             await _seedPrices.Run(startYear, cancellationToken: cancellationToken);
         }
 
