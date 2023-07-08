@@ -1,4 +1,4 @@
-//using Microsoft.Extensions.Logging.AzureAppServices;
+using Microsoft.Extensions.Logging.AzureAppServices;
 using Prices.AzureBlobStorage;
 using Prices.Core.Application.Models;
 using Prices.Downloader.Services;
