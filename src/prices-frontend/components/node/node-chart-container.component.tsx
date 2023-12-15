@@ -49,7 +49,7 @@ export const NodeChartContainer = (props: NodeChartContainerProps) => {
         const oldPrice = _.chain(pricesWithPricingNodes)
             .filter((p) => realTimePriceIndex.indexOf(p.priceIndexId) > -1)
             .sortBy("intervalEndTimeUtc")
-            .value()[0].lmpPrice;
+            .value()[0]?.lmpPrice;
 
         if (oldPrice) {
             percentChange = (pricingNode.currentPrice - oldPrice) / oldPrice;
