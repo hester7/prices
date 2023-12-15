@@ -11,7 +11,6 @@ using Prices.Persistence;
 using Serilog;
 using Serilog.Events;
 using Serilog.Exceptions;
-using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using Serilog.Sinks.SystemConsole.Themes;
 
 [assembly: FunctionsStartup(typeof(Startup))]
@@ -31,7 +30,7 @@ internal class Startup : FunctionsStartup
                 theme: AnsiConsoleTheme.Literate,
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} ({SourceContext}){NewLine}{Exception}"
             )
-            .WriteTo.ApplicationInsights("86bc4e5b-e36e-472e-8533-87f72cfb1da9", new TraceTelemetryConverter())
+            //.WriteTo.ApplicationInsights("86bc4e5b-e36e-472e-8533-87f72cfb1da9", new TraceTelemetryConverter())
             .CreateLogger();
 
         builder.Services.AddLogging(logging => logging.AddSerilog(logger));
