@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NodaTime;
+using Polly;
 using Prices.Core.Application.Models;
 using Prices.Core.Domain.Models;
 
@@ -8,56 +9,31 @@ namespace Prices.Persistence.EntityFramework.Extensions;
 public static class PricesContextExtensions
 {
     public static async Task BulkSavePricesAsync(this PricesContext dbContext,
-    PricesFileMetadata blobMetadata,
-    string blobName,
-    long fileSize,
-    Instant now,
-    IEnumerable<Price> prices,
-    CancellationToken cancellationToken)
+        PricesFileMetadata blobMetadata,
+        string blobName,
+        long fileSize,
+        Instant now,
+        IEnumerable<Price> prices,
+        CancellationToken cancellationToken)
     {
+        var policy = Policy
+            .Handle<Exception>()
+            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
         var pricesList = prices.ToList();
         if (!pricesList.Any())
             return;
 
-        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
-        var retries = 0;
-
-        await executionStrategy.Execute(async () =>
+        const int batchSize = 5_000;
+        var batches = pricesList.Chunk(batchSize).ToList();
+        foreach (var batch in batches)
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            // Build in delay to avoid database issues
+            if (batches.Count > 1)
+                await Task.Delay(Random.Shared.Next(3_000, 5_000), cancellationToken);
 
-            while (true)
-            {
-                try
-                {
-                    const int batchSize = 5_000;
-                    var batches = pricesList.Chunk(batchSize).ToList();
-                    foreach (var batch in batches)
-                    {
-                        // Build in delay to avoid database issues
-                        if (batches.Count > 1)
-                            await Task.Delay(Random.Shared.Next(3_000, 5_000), cancellationToken);
-
-                        await dbContext.Prices.BulkMergeAsync(batch.ToList(), cancellationToken: cancellationToken);
-                    }
-
-                    await transaction.CommitAsync(cancellationToken);
-                    break; // break out of the loop if the bulk save operation succeeds
-                }
-                catch (Exception)
-                {
-                    retries++;
-                    if (retries <= 2)
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
-                        continue; // continue to the next iteration of the loop
-                    }
-
-                    await transaction.RollbackAsync(cancellationToken);
-                    throw;
-                }
-            }
-        });
+            await policy.ExecuteAsync(async () => { await dbContext.Prices.BulkMergeAsync(batch.ToList(), cancellationToken: cancellationToken); });
+        }
 
         var startDate = pricesList.Min(p => p.IntervalStartTimeUtc);
         var endDate = pricesList.Max(p => p.IntervalEndTimeUtc);
@@ -80,6 +56,4 @@ public static class PricesContextExtensions
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
-
-
 }

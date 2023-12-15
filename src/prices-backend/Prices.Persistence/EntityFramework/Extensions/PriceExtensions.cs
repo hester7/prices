@@ -3,19 +3,21 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Prices.Core.Domain.Models;
 
-namespace Prices.Persistence.EntityFramework.Extensions
+namespace Prices.Persistence.EntityFramework.Extensions;
+
+public static class PriceExtensions
 {
-    public static class PriceExtensions
+    public static async Task BulkMergeAsync(this DbSet<Price> dbSet,
+        List<Price> prices,
+        CancellationToken cancellationToken = default)
     {
-        public static async Task BulkMergeAsync(this DbSet<Price> dbSet,
-            List<Price> prices,
-            CancellationToken cancellationToken = default)
+        var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
+
+        var pricesTableName = $"{nameof(Price)}s";
+        var tempTableName = $"temp_prices_{Guid.NewGuid():N}";
+
+        try
         {
-            var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
-
-            var pricesTableName = $"{nameof(Price)}s";
-            var tempTableName = $"temp_prices_{Guid.NewGuid():N}";
-
             await dbContext.Database.ExecuteSqlRawAsync($@"CREATE TABLE {tempTableName} (LIKE ""{pricesTableName}"" INCLUDING ALL)", cancellationToken);
 
             var bulkConfig = new BulkConfig
@@ -65,7 +67,9 @@ namespace Prices.Persistence.EntityFramework.Extensions
                                 s.""{nameof(Price.LastModifiedAtUtc)}"")";
 
             await dbContext.Database.ExecuteSqlRawAsync(mergeSql, cancellationToken);
-
+        }
+        finally
+        {
             await dbContext.Database.ExecuteSqlRawAsync($"DROP TABLE \"{tempTableName}\"", cancellationToken);
         }
     }
