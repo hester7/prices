@@ -13,7 +13,7 @@ public static class PriceExtensions
     {
         var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
 
-        var pricesTableName = $"{nameof(Price)}s";
+        const string pricesTableName = $"{nameof(Price)}s";
         var tempTableName = $"temp_prices_{Guid.NewGuid():N}";
 
         try
@@ -67,6 +67,11 @@ public static class PriceExtensions
                                 s.""{nameof(Price.LastModifiedAtUtc)}"")";
 
             await dbContext.Database.ExecuteSqlRawAsync(mergeSql, cancellationToken);
+        }
+        catch (Exception)
+        {
+            // Add a delay to give enough time for any pending transactions or connections to release their locks on the temporary table.
+            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
         }
         finally
         {
