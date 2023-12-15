@@ -51,7 +51,9 @@ export const NodeChartContainer = (props: NodeChartContainerProps) => {
             .sortBy("intervalEndTimeUtc")
             .value()[0].lmpPrice;
 
-        percentChange = (pricingNode.currentPrice - oldPrice) / oldPrice;
+        if (oldPrice) {
+            percentChange = (pricingNode.currentPrice - oldPrice) / oldPrice;
+        }
     }
 
     const handleSpanChange = useCallback(
