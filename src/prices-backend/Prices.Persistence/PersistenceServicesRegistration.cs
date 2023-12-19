@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
+using Npgsql;
 using Prices.Core.Application.Models;
 using Prices.Persistence.EntityFramework;
 
@@ -13,12 +14,22 @@ namespace Prices.Persistence
 
         public static IServiceCollection AddEntityFrameworkServices(this IServiceCollection services, string connectionString) => services
             .AddSingleton<IClock>(SystemClock.Instance)
-            .AddPooledDbContextFactory<PricesContext>(o => o.UseNpgsql(connectionString, options =>
-            {
-                options.EnableRetryOnFailure();
-                options.CommandTimeout(300);
-                options.UseNodaTime();
-            }))
-        ;
+            .AddPooledDbContextFactory<PricesContext>(o =>
+                {
+                    var builder = new NpgsqlConnectionStringBuilder(connectionString)
+                    {
+                        CommandTimeout = 0
+                    };
+
+                    o
+                        .UseNpgsql(
+                            builder.ConnectionString,
+                            options =>
+                            {
+                                options.EnableRetryOnFailure();
+                                options.UseNodaTime();
+                            });
+                }
+            );
     }
 }
