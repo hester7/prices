@@ -24,7 +24,7 @@ public static class PricesContextExtensions
         if (!pricesList.Any())
             return;
 
-        const int batchSize = 5_000;
+        const int batchSize = 20_000;
         var batches = pricesList.Chunk(batchSize).ToList();
         foreach (var batch in batches)
         {
