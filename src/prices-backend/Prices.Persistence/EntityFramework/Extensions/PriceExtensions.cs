@@ -16,17 +16,15 @@ public static class PriceExtensions
         const string pricesTableName = $"{nameof(Price)}s";
         var tempTableName = $"temp_prices_{Guid.NewGuid():N}";
 
-        try
+        await dbContext.Database.ExecuteSqlRawAsync($@"CREATE TABLE {tempTableName} (LIKE ""{pricesTableName}"" INCLUDING ALL)", cancellationToken);
+
+        var bulkConfig = new BulkConfig
         {
-            await dbContext.Database.ExecuteSqlRawAsync($@"CREATE TABLE {tempTableName} (LIKE ""{pricesTableName}"" INCLUDING ALL)", cancellationToken);
+            CustomDestinationTableName = tempTableName,
+        };
+        await dbContext.BulkInsertAsync(prices, bulkConfig, cancellationToken: cancellationToken);
 
-            var bulkConfig = new BulkConfig
-            {
-                CustomDestinationTableName = tempTableName,
-            };
-            await dbContext.BulkInsertAsync(prices, bulkConfig, cancellationToken: cancellationToken);
-
-            var mergeSql = $@"
+        var mergeSql = $@"
                     MERGE INTO ""{pricesTableName}"" t
                     USING {tempTableName} s
                     ON t.""{nameof(Price.PriceIndexId)}"" = s.""{nameof(Price.PriceIndexId)}""
@@ -66,16 +64,8 @@ public static class PriceExtensions
                                 s.""{nameof(Price.PricingNodeName)}"",
                                 s.""{nameof(Price.LastModifiedAtUtc)}"")";
 
-            await dbContext.Database.ExecuteSqlRawAsync(mergeSql, cancellationToken);
-        }
-        catch (Exception)
-        {
-            // Add a delay to give enough time for any pending transactions or connections to release their locks on the temporary table.
-            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
-        }
-        finally
-        {
-            await dbContext.Database.ExecuteSqlRawAsync($"DROP TABLE \"{tempTableName}\"", cancellationToken);
-        }
+        await dbContext.Database.ExecuteSqlRawAsync(mergeSql, cancellationToken);
+
+        await dbContext.Database.ExecuteSqlRawAsync($"DROP TABLE {tempTableName}", cancellationToken);
     }
 }
