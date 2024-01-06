@@ -58,10 +58,18 @@ namespace Prices.EventGrid.Function
             {
                 const string errorMessage = "Could not parse blob event data from EventGrid event.";
                 _logger.Error(errorMessage);
-                throw new Exception(errorMessage);
+                return;
             }
 
-            var blobName = blobEvent.Url.Split(new[] { "prices/" }, StringSplitOptions.None)[1];
+            var splitUrl = blobEvent.Url.Split(new[] { "prices/" }, StringSplitOptions.None);
+            if (splitUrl.Length <= 1)
+            {
+                const string errorMessage = "Could not parse blob event data from EventGrid event.";
+                _logger.Error(errorMessage);
+                return;
+            }
+
+            var blobName = splitUrl[1];
             var metadata = await _azureBlobStorageClient.GetBlobMetadataAsync(blobName, cancellationToken);
 
             var fileSize = stream.Length;
