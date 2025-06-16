@@ -125,7 +125,7 @@ namespace Prices.PriceUpdater
                 }
 
                 //await Task.Delay(Random.Shared.Next(10_000, 20_000), cancellationToken);
-                await Task.Delay(5_000, cancellationToken);
+                await Task.Delay(1_000, cancellationToken);
             }
         }
 
