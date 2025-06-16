@@ -190,7 +190,10 @@ namespace Prices.PriceUpdater
         {
             if (pricingNode.CurrentPrice == currentPrice.LmpPrice)
             {
-                return false;
+                //return false;
+
+                // TODO: Add a random change for demonstration purposes.
+                currentPrice.LmpPrice += Math.Round(currentPrice.LmpPrice * Random.Shared.Next(-100, 100) / 1000, 2);
             }
 
             pricingNode.LastModifiedAtUtc = _clock.GetCurrentInstant();
