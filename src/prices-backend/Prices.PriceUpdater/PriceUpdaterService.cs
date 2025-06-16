@@ -125,7 +125,7 @@ namespace Prices.PriceUpdater
                 }
 
                 //await Task.Delay(Random.Shared.Next(10_000, 20_000), cancellationToken);
-                await Task.Delay(1_000, cancellationToken);
+                await Task.Delay(5_000, cancellationToken);
             }
         }
 
@@ -190,10 +190,7 @@ namespace Prices.PriceUpdater
         {
             if (pricingNode.CurrentPrice == currentPrice.LmpPrice)
             {
-                //return false;
-
-                // TODO: Add a random change for demonstration purposes.
-                currentPrice.LmpPrice += Math.Round(currentPrice.LmpPrice * Random.Shared.Next(-100, 100) / 1000, 2);
+                return false;
             }
 
             pricingNode.LastModifiedAtUtc = _clock.GetCurrentInstant();
